@@ -6,8 +6,8 @@ A especificação funcional completa está em [`spec.md`](spec.md). O andamento 
 
 ## Status
 
-- Etapa 1 de 6 concluída: estrutura Gradle, janela libGDX vazia e JUnit configurado.
-- Próxima etapa: núcleo do tabuleiro (`Cell`, `Board`, `Difficulty`, `MinePlacer`).
+- Etapa 2 de 6 concluída: núcleo do tabuleiro com posicionamento seguro de minas, adjacências e flood fill iterativo.
+- Próxima etapa: regras e estado do jogo (`GameEngine`).
 
 ## Requisitos
 
@@ -54,7 +54,7 @@ progresso.md checklist e histórico de validação das etapas
 | Etapa | Foco | Status |
 |---|---|---|
 | 1 | Base executável | Concluída |
-| 2 | Núcleo do tabuleiro | Pendente |
+| 2 | Núcleo do tabuleiro | Concluída |
 | 3 | Regras e estado do jogo | Pendente |
 | 4 | Renderização e interação básica | Pendente |
 | 5 | HUD, dificuldades e interação completa | Pendente |

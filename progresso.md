@@ -14,7 +14,7 @@ Checklist vivo da implementação. `spec.md` é a fonte das regras; este arquivo
 | Etapa | Foco | Status |
 |---|---|---|
 | 1 | Base executável | Concluída |
-| 2 | Núcleo do tabuleiro | Pendente |
+| 2 | Núcleo do tabuleiro | Concluída |
 | 3 | Regras e estado do jogo | Pendente |
 | 4 | Renderização e interação básica | Pendente |
 | 5 | HUD, dificuldades e interação completa | Pendente |
@@ -50,30 +50,33 @@ Status: **Concluída**
 
 ## Etapa 2 — Núcleo do tabuleiro
 
-Status: **Pendente**
+Status: **Concluída**
 
 ### Entregas
-- [ ] `Cell` e `CellState`.
-- [ ] `Board` com array 1D (`idx = y * cols + x`).
-- [ ] `Difficulty` e configuração personalizada com clamp.
-- [ ] `MinePlacer` com `Random` e seed opcional.
-- [ ] Flood fill **iterativo**.
-- [ ] Método de teste para injetar minas manualmente.
+- [x] `Cell` e `CellState`.
+- [x] `Board` com array 1D (`idx = y * cols + x`).
+- [x] `Difficulty` e configuração personalizada com clamp.
+- [x] `MinePlacer` com `Random` e seed opcional.
+- [x] Flood fill **iterativo**.
+- [x] Método de teste para injetar minas manualmente.
 
 ### Validação
-- [ ] Contagem de minas posicionadas igual ao valor configurado, por dificuldade.
-- [ ] Primeiro clique seguro em 10.000 seeds diferentes.
-- [ ] `adjacentMines` correto em canto, borda e centro.
-- [ ] Flood fill abre a região esperada, não abre bandeiras/minas e não estoura a pilha em 30×24.
-- [ ] Clamp de colunas, linhas e minas do nível personalizado.
-- [ ] Nenhum import de `com.badlogic.gdx` no pacote `model`.
-- [ ] `./gradlew test` passa.
+- [x] Contagem de minas posicionadas igual ao valor configurado, por dificuldade.
+- [x] Primeiro clique seguro em 10.000 seeds diferentes.
+- [x] `adjacentMines` correto em canto, borda e centro.
+- [x] Flood fill abre a região esperada, não abre bandeiras/minas e não estoura a pilha em 30×24.
+- [x] Clamp de colunas, linhas e minas do nível personalizado.
+- [x] Nenhum import de `com.badlogic.gdx` no pacote `model`.
+- [x] `./gradlew test` passa.
 
 ### Notas/decisões
--
+- `Board` expõe `setMine(...)` e `recalculateAdjacentMines()` para testes e para o `MinePlacer`.
+- Zona segura usa a condição `cols * rows - 9 >= mines`; o fallback protege apenas a célula clicada.
+- `FloodFill` usa `ArrayDeque`, sem recursão; abre `QUESTION` e ignora `FLAGGED`.
+- 19 testes unitários no módulo `core`.
 
 ### Bloqueios
--
+- Nenhum.
 
 ---
 
@@ -221,3 +224,5 @@ Adicionar uma linha por validação relevante.
 |---|---|---|---|
 | 2026-11-13 | 1 | `./gradlew test` | Passou |
 | 2026-11-13 | 1 | `./gradlew lwjgl3:run` (abrir/fechar janela) | Passou, código 0 |
+| 2026-11-13 | 2 | `./gradlew test` (19 testes) | Passou |
+| 2026-11-13 | 2 | Verificação de imports de `com.badlogic.gdx` no `model` | Nenhum import |
