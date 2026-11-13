@@ -1,7 +1,7 @@
 # AGENTS.md
 
 ## Repo state
-- Implementation in progress: stages 1–3 complete (`model` board rules + `GameEngine`, 31 JUnit tests). Stages 4–6 pending (rendering, HUD, persistence, distribution).
+- Implementation in progress: stages 1–3 complete (`model` board rules + `GameEngine`, 31 JUnit tests). Stage 4 implemented (`GameScreen` + `BoardRenderer`), pending manual interaction/visual validation. Stages 5–6 pending (HUD, persistence, distribution).
 - `spec.md` (pt-BR) is the source of truth; implement to it, and update it only if the user asks.
 - `progresso.md` tracks stage status and validation history; keep it updated after each stage.
 

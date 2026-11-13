@@ -16,7 +16,7 @@ Checklist vivo da implementação. `spec.md` é a fonte das regras; este arquivo
 | 1 | Base executável | Concluída |
 | 2 | Núcleo do tabuleiro | Concluída |
 | 3 | Regras e estado do jogo | Concluída |
-| 4 | Renderização e interação básica | Pendente |
+| 4 | Renderização e interação básica | Em andamento |
 | 5 | HUD, dificuldades e interação completa | Pendente |
 | 6 | Persistência, polimento e empacotamento | Pendente |
 
@@ -118,16 +118,16 @@ Status: **Concluída**
 
 ## Etapa 4 — Renderização e interação básica
 
-Status: **Pendente**
+Status: **Em andamento**
 
 ### Entregas
-- [ ] `GameScreen` e `BoardRenderer` com `ShapeRenderer` + `BitmapFont`.
-- [ ] `FitViewport` e conversão de coordenadas de tela para célula.
-- [ ] Linha 0 exibida no topo.
-- [ ] Revelar ao soltar o botão esquerdo.
-- [ ] Bandeira com o botão direito.
-- [ ] Feedback de célula pressionada, arrastar e cancelar ao soltar fora.
-- [ ] `F2` reinicia o jogo.
+- [x] `GameScreen` e `BoardRenderer` com `ShapeRenderer` + `BitmapFont`.
+- [x] `FitViewport` e conversão de coordenadas de tela para célula.
+- [x] Linha 0 exibida no topo.
+- [x] Revelar ao soltar o botão esquerdo.
+- [x] Bandeira com o botão direito.
+- [x] Feedback de célula pressionada, arrastar e cancelar ao soltar fora.
+- [x] `F2` reinicia o jogo.
 
 ### Validação manual
 - [ ] Iniciar no nível Iniciante e revelar uma área vazia.
@@ -136,13 +136,19 @@ Status: **Pendente**
 - [ ] Célula marcada não é revelada pelo botão esquerdo.
 - [ ] Arrastar para fora do tabuleiro cancela a ação.
 - [ ] `F2` reinicia o tabuleiro.
-- [ ] Testes das etapas anteriores continuam passando.
+- [x] Testes das etapas anteriores continuam passando.
 
 ### Notas/decisões
--
+- `GameScreen` usa `FitViewport` com mundo de `colunas*32 + 24` por `linhas*32 + 24`; margem de 12 px e célula de 32 px.
+- `BoardRenderer` desenha células com `ShapeRenderer` e números com `BitmapFont`; não usa assets externos.
+- Coordenadas convertidas via `viewport.unproject` + `BoardRenderer.cellAt`; a linha 0 do modelo aparece no topo.
+- Revelação ocorre no `touchUp` esquerdo sobre a célula; arrastar mostra a célula pressionada e soltar fora cancela.
+- Bandeira é alternada no `touchDown` direito quando o esquerdo não está pressionado.
+- `F2` reinicia mantendo a mesma configuração.
+- Smoke test: janela abriu e permaneceu rodando sem exceções até o encerramento por timeout; interação visual ainda precisa de validação manual.
 
 ### Bloqueios
--
+- Validação manual de clique, arraste, bandeira e visual pendente.
 
 ---
 
@@ -234,3 +240,5 @@ Adicionar uma linha por validação relevante.
 | 2026-11-13 | 2 | `./gradlew test` (19 testes) | Passou |
 | 2026-11-13 | 2 | Verificação de imports de `com.badlogic.gdx` no `model` | Nenhum import |
 | 2026-11-13 | 3 | `./gradlew test --offline` (31 testes) | Passou |
+| 2026-11-13 | 4 | `./gradlew test --offline` (31 testes) | Passou |
+| 2026-11-13 | 4 | `timeout 10s ./gradlew lwjgl3:run --offline` | Janela abriu sem exceções; encerrada por timeout |
