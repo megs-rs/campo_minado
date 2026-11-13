@@ -15,7 +15,7 @@ Checklist vivo da implementação. `spec.md` é a fonte das regras; este arquivo
 |---|---|---|
 | 1 | Base executável | Concluída |
 | 2 | Núcleo do tabuleiro | Concluída |
-| 3 | Regras e estado do jogo | Pendente |
+| 3 | Regras e estado do jogo | Concluída |
 | 4 | Renderização e interação básica | Pendente |
 | 5 | HUD, dificuldades e interação completa | Pendente |
 | 6 | Persistência, polimento e empacotamento | Pendente |
@@ -82,30 +82,37 @@ Status: **Concluída**
 
 ## Etapa 3 — Regras e estado do jogo
 
-Status: **Pendente**
+Status: **Concluída**
 
 ### Entregas
-- [ ] `GameEngine` com `newGame`, `restart`, `reveal`, `toggleFlag`, `chord` e `update(delta)`.
-- [ ] Máquina de estados `READY -> PLAYING -> WON/LOST`.
-- [ ] Primeiro clique posiciona minas e inicia o cronômetro.
-- [ ] Contador de minas, incluindo valores negativos.
-- [ ] Vitória, derrota e estados de fim de jogo (`EXPLODED`, `MINE_SHOWN`, `WRONG_FLAG`).
-- [ ] Cronômetro por delta acumulado, com parada em 999, vitória ou derrota.
+- [x] `GameEngine` com `newGame`, `restart`, `reveal`, `toggleFlag`, `chord` e `update(delta)`.
+- [x] Máquina de estados `READY -> PLAYING -> WON/LOST`.
+- [x] Primeiro clique posiciona minas e inicia o cronômetro.
+- [x] Contador de minas, incluindo valores negativos.
+- [x] Vitória, derrota e estados de fim de jogo (`EXPLODED`, `MINE_SHOWN`, `WRONG_FLAG`).
+- [x] Cronômetro por delta acumulado, com parada em 999, vitória ou derrota.
 
 ### Validação
-- [ ] Testes da seção 15.1, itens 5 a 9, do `spec.md`.
-- [ ] Chord abre vizinhos quando bandeiras == número, não abre quando diferente e explode com bandeira errada.
-- [ ] Vitória detectada exatamente quando a última célula segura é aberta.
-- [ ] Contador pode ficar negativo; `QUESTION` não conta como bandeira.
-- [ ] Cronômetro não inicia ao marcar bandeira e para nos limites definidos.
-- [ ] Todos os testes da seção 15.1 passam.
-- [ ] `./gradlew test` passa.
+- [x] Testes da seção 15.1, itens 5 a 9, do `spec.md`.
+- [x] Chord abre vizinhos quando bandeiras == número, não abre quando diferente e explode com bandeira errada.
+- [x] Vitória detectada exatamente quando a última célula segura é aberta.
+- [x] Contador pode ficar negativo; `QUESTION` não conta como bandeira.
+- [x] Cronômetro não inicia ao marcar bandeira e para nos limites definidos.
+- [x] Todos os testes da seção 15.1 passam.
+- [x] `./gradlew test` passa.
 
 ### Notas/decisões
--
+- `GameEngine` é puro Java, sem dependência de `com.badlogic.gdx`.
+- O primeiro `reveal` coloca as minas com `MinePlacer`, muda para `PLAYING` e zera o cronômetro; marcar bandeira antes disso mantém `READY`.
+- `remainingMines()` usa `Board.getFlagCount()`, que conta `FLAGGED` e `WRONG_FLAG`; `QUESTION` não conta.
+- Na derrota, a mina clicada vira `EXPLODED`, minas não marcadas viram `MINE_SHOWN` e bandeiras erradas viram `WRONG_FLAG`.
+- Na vitória, todas as minas recebem `FLAGGED` e o contador fica em 0.
+- `chord` só age em célula revelada numerada com bandeiras vizinhas iguais ao número; pode causar derrota se houver bandeira errada.
+- Interrogação é desativada por padrão; ciclo `COVERED -> FLAGGED -> QUESTION/COVERED -> COVERED`.
+- 31 testes unitários no módulo `core` (9 de `GameEngine`, 3 de chord).
 
 ### Bloqueios
--
+- Nenhum.
 
 ---
 
@@ -226,3 +233,4 @@ Adicionar uma linha por validação relevante.
 | 2026-11-13 | 1 | `./gradlew lwjgl3:run` (abrir/fechar janela) | Passou, código 0 |
 | 2026-11-13 | 2 | `./gradlew test` (19 testes) | Passou |
 | 2026-11-13 | 2 | Verificação de imports de `com.badlogic.gdx` no `model` | Nenhum import |
+| 2026-11-13 | 3 | `./gradlew test --offline` (31 testes) | Passou |

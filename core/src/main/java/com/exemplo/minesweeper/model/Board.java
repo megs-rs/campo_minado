@@ -90,9 +90,9 @@ public final class Board {
             revealedCount++;
         }
 
-        if (previous == CellState.FLAGGED && state != CellState.FLAGGED) {
+        if (isFlagState(previous) && !isFlagState(state)) {
             flagCount--;
-        } else if (previous != CellState.FLAGGED && state == CellState.FLAGGED) {
+        } else if (!isFlagState(previous) && isFlagState(state)) {
             flagCount++;
         }
 
@@ -139,6 +139,10 @@ public final class Board {
             }
         });
         return count[0];
+    }
+
+    private static boolean isFlagState(CellState state) {
+        return state == CellState.FLAGGED || state == CellState.WRONG_FLAG;
     }
 
     private static void validateDimensions(int columns, int rows, int mines) {

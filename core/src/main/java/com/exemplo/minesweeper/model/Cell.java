@@ -6,7 +6,6 @@ public final class Cell {
     private boolean mine;
     private int adjacentMines;
     private CellState state = CellState.COVERED;
-    private boolean exploded;
 
     public boolean hasMine() {
         return mine;
@@ -18,10 +17,6 @@ public final class Cell {
 
     public CellState getState() {
         return state;
-    }
-
-    public boolean isExploded() {
-        return exploded;
     }
 
     void setMine(boolean mine) {
@@ -37,9 +32,5 @@ public final class Cell {
 
     void setState(CellState state) {
         this.state = Objects.requireNonNull(state, "state");
-    }
-
-    void setExploded(boolean exploded) {
-        this.exploded = exploded;
     }
 }

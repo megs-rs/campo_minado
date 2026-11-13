@@ -4,5 +4,8 @@ public enum CellState {
     COVERED,
     FLAGGED,
     QUESTION,
-    REVEALED
+    REVEALED,
+    EXPLODED,
+    WRONG_FLAG,
+    MINE_SHOWN
 }

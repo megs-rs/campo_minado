@@ -1,17 +1,18 @@
 # AGENTS.md
 
 ## Repo state
-- Spec-only repository: only `spec.md` exists. No build, source, or tests yet.
+- Implementation in progress: stages 1–3 complete (`model` board rules + `GameEngine`, 31 JUnit tests). Stages 4–6 pending (rendering, HUD, persistence, distribution).
 - `spec.md` (pt-BR) is the source of truth; implement to it, and update it only if the user asks.
+- `progresso.md` tracks stage status and validation history; keep it updated after each stage.
 
 ## Target stack
 - Java 17+, libGDX 1.12.x, LWJGL3 desktop backend, Gradle layout from `gdx-liftoff`.
 - Modules: `core` (logic + rendering) and `lwjgl3` (desktop launcher).
 - Tests: JUnit 5, `core` module only, no graphics dependencies.
 
-## Commands (valid once scaffolded)
+## Commands
 - Run: `./gradlew lwjgl3:run`
-- Tests: `./gradlew test`
+- Tests: `./gradlew test` (use `--offline` if Maven/GitHub is flaky)
 - Single test: `./gradlew core:test --tests "com.exemplo.minesweeper.model.<TestClass>"`
 - Distribution JAR: `./gradlew lwjgl3:dist` (implementado na etapa 6)
 

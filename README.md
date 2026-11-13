@@ -6,8 +6,8 @@ A especificação funcional completa está em [`spec.md`](spec.md). O andamento 
 
 ## Status
 
-- Etapa 2 de 6 concluída: núcleo do tabuleiro com posicionamento seguro de minas, adjacências e flood fill iterativo.
-- Próxima etapa: regras e estado do jogo (`GameEngine`).
+- Etapa 3 de 6 concluída: núcleo do tabuleiro e `GameEngine` com primeiro clique seguro, cronômetro, bandeiras, chord, vitória e derrota.
+- Próxima etapa: renderização e interação básica.
 
 ## Requisitos
 
@@ -23,7 +23,7 @@ A primeira execução baixa o Gradle e as dependências do Maven Central.
 ./gradlew lwjgl3:run
 ```
 
-Nesta etapa, o comando abre apenas uma janela vazia.
+Até a etapa 3, o comando abre apenas uma janela vazia; a tela do jogo será adicionada na etapa 4.
 
 ## Testes
 
@@ -55,7 +55,7 @@ progresso.md checklist e histórico de validação das etapas
 |---|---|---|
 | 1 | Base executável | Concluída |
 | 2 | Núcleo do tabuleiro | Concluída |
-| 3 | Regras e estado do jogo | Pendente |
+| 3 | Regras e estado do jogo | Concluída |
 | 4 | Renderização e interação básica | Pendente |
 | 5 | HUD, dificuldades e interação completa | Pendente |
 | 6 | Persistência, polimento e empacotamento | Pendente |
