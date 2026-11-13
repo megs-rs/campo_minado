@@ -13,7 +13,7 @@
 - Run: `./gradlew lwjgl3:run`
 - Tests: `./gradlew test`
 - Single test: `./gradlew core:test --tests "com.exemplo.minesweeper.model.<TestClass>"`
-- Distribution JAR: `./gradlew lwjgl3:dist`
+- Distribution JAR: `./gradlew lwjgl3:dist` (implementado na etapa 6)
 
 ## Hard constraints from the spec
 - `model` package must not import `com.badlogic.gdx`; keep all rules unit-testable.

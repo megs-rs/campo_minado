@@ -1,0 +1,30 @@
+plugins {
+    id 'base'
+}
+
+ext {
+    appName = 'campo-minado'
+    gdxVersion = '1.12.1'
+    junitVersion = '5.10.2'
+}
+
+allprojects {
+    repositories {
+        mavenCentral()
+        google()
+    }
+}
+
+subprojects {
+    apply plugin: 'java-library'
+
+    java {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        options.release = 17
+    }
+}

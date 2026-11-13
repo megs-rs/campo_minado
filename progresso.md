@@ -13,7 +13,7 @@ Checklist vivo da implementação. `spec.md` é a fonte das regras; este arquivo
 
 | Etapa | Foco | Status |
 |---|---|---|
-| 1 | Base executável | Pendente |
+| 1 | Base executável | Concluída |
 | 2 | Núcleo do tabuleiro | Pendente |
 | 3 | Regras e estado do jogo | Pendente |
 | 4 | Renderização e interação básica | Pendente |
@@ -24,25 +24,27 @@ Checklist vivo da implementação. `spec.md` é a fonte das regras; este arquivo
 
 ## Etapa 1 — Base executável
 
-Status: **Pendente**
+Status: **Concluída**
 
 ### Entregas
-- [ ] Estrutura Gradle `gdx-liftoff` com módulos `core` e `lwjgl3`.
-- [ ] Java 17, libGDX 1.12.x e JUnit 5 configurado no `core`.
-- [ ] Launcher abrindo uma janela vazia.
-- [ ] Pacote base `com.exemplo.minesweeper`.
-- [ ] `.gitignore` para Gradle/IDE.
+- [x] Estrutura Gradle `gdx-liftoff` com módulos `core` e `lwjgl3`.
+- [x] Java 17, libGDX 1.12.x e JUnit 5 configurado no `core`.
+- [x] Launcher abrindo uma janela vazia.
+- [x] Pacote base `com.exemplo.minesweeper`.
+- [x] `.gitignore` para Gradle/IDE.
 
 ### Validação
-- [ ] `./gradlew test` passa.
-- [ ] `./gradlew lwjgl3:run` abre a janela vazia sem erro.
-- [ ] Fechar a janela encerra o processo sem stack trace.
+- [x] `./gradlew test` passa.
+- [x] `./gradlew lwjgl3:run` abre a janela vazia sem erro.
+- [x] Fechar a janela encerra o processo sem stack trace.
 
 ### Notas/decisões
--
+- Gradle wrapper 9.1.0; bytecode compilado com `--release 17`.
+- `MinesweeperGame` já é o ponto de entrada libGDX, pronto para receber a `GameScreen`.
+- Validação de `lwjgl3:run` feita abrindo e fechando a janela; o processo terminou com código 0.
 
 ### Bloqueios
--
+- Nenhum.
 
 ---
 
@@ -217,4 +219,5 @@ Adicionar uma linha por validação relevante.
 
 | Data | Etapa | Verificação | Resultado |
 |---|---|---|---|
-|  |  |  |  |
+| 2026-11-13 | 1 | `./gradlew test` | Passou |
+| 2026-11-13 | 1 | `./gradlew lwjgl3:run` (abrir/fechar janela) | Passou, código 0 |

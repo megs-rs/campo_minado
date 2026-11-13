@@ -1,0 +1,22 @@
+plugins {
+    id 'application'
+}
+
+dependencies {
+    implementation project(':core')
+    implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
+    implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+}
+
+application {
+    mainClass = 'com.exemplo.minesweeper.lwjgl3.Lwjgl3Launcher'
+}
+
+sourceSets.main.resources.srcDirs += [rootProject.file('assets').path]
+
+tasks.named('run') {
+    workingDir = rootProject.file('assets')
+    if (System.getProperty('os.name').toLowerCase().contains('mac')) {
+        jvmArgs += '-XstartOnFirstThread'
+    }
+}
