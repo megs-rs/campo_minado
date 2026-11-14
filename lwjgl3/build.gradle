@@ -20,3 +20,17 @@ tasks.named('run') {
         jvmArgs += '-XstartOnFirstThread'
     }
 }
+
+tasks.register('dist', Jar) {
+    dependsOn configurations.runtimeClasspath
+    archiveFileName = "${rootProject.ext.appName}.jar"
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest {
+        attributes 'Main-Class': application.mainClass.get()
+    }
+    from sourceSets.main.output
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/INDEX.LIST'
+}

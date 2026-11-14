@@ -14,6 +14,8 @@ import com.exemplo.minesweeper.model.CustomDifficulty;
 import com.exemplo.minesweeper.model.Difficulty;
 import com.exemplo.minesweeper.model.GameEngine;
 import com.exemplo.minesweeper.model.GameState;
+import com.exemplo.minesweeper.persistence.HighScores;
+import com.exemplo.minesweeper.persistence.Settings;
 import com.exemplo.minesweeper.render.BoardRenderer;
 import com.exemplo.minesweeper.render.GameLayout;
 import com.exemplo.minesweeper.render.GameUiRenderer;
@@ -26,6 +28,8 @@ public final class GameScreen extends ScreenAdapter {
     private static final int CUSTOM_MINES = 2;
 
     private final GameEngine engine;
+    private final Settings settings;
+    private final HighScores highScores;
     private final FitViewport viewport = new FitViewport(1f, 1f);
     private final Vector2 worldPoint = new Vector2();
     private final GameInput inputProcessor = new GameInput();
@@ -53,9 +57,21 @@ public final class GameScreen extends ScreenAdapter {
     private String customRows;
     private String customMines;
 
-    public GameScreen(GameEngine engine) {
+    private boolean highScoresOpen;
+    private boolean resetConfirmationOpen;
+    private boolean newRecordDialogOpen;
+    private boolean recordHandled;
+    private String newRecordName = "";
+
+    public GameScreen(GameEngine engine, Settings settings, HighScores highScores) {
         this.engine = Objects.requireNonNull(engine, "engine");
+        this.settings = Objects.requireNonNull(settings, "settings");
+        this.highScores = Objects.requireNonNull(highScores, "highScores");
         this.currentConfig = engine.config();
+        this.uiScale = settings.getUiScale();
+        this.questionMarks = settings.isQuestionMarks();
+        this.chordOnNumberClick = settings.isChordOnNumberClick();
+        engine.setQuestionMarksEnabled(questionMarks);
         rebuildLayout();
     }
 
@@ -74,9 +90,10 @@ public final class GameScreen extends ScreenAdapter {
     @Override
     public void render(float delta) {
         engine.update(delta);
+        handleNewRecordOnWin();
 
         int[] currentCell = cellAtScreen(Gdx.input.getX(), Gdx.input.getY());
-        boolean boardButtonDown = !menuOpen && !customDialogOpen
+        boolean boardButtonDown = !isModalOpen()
                 && (leftDown || rightDown || middleDown)
                 && currentCell != null;
 
@@ -84,7 +101,7 @@ public final class GameScreen extends ScreenAdapter {
         int pressedY = -1;
         int chordX = -1;
         int chordY = -1;
-        if (!menuOpen && !customDialogOpen && currentCell != null) {
+        if (!isModalOpen() && currentCell != null) {
             if (chordGesture && leftDown && rightDown) {
                 Cell cell = engine.board().get(currentCell[0], currentCell[1]);
                 if (cell.getState() == CellState.REVEALED && cell.getAdjacentMines() > 0) {
@@ -103,7 +120,16 @@ public final class GameScreen extends ScreenAdapter {
         uiRenderer.renderHud(engine, boardButtonDown, facePressed,
                 viewport.getCamera().combined);
 
-        if (customDialogOpen) {
+        if (newRecordDialogOpen) {
+            uiRenderer.renderNewRecord(currentConfig.displayName(),
+                    engine.elapsedSeconds(), newRecordName,
+                    viewport.getCamera().combined);
+        } else if (resetConfirmationOpen) {
+            uiRenderer.renderResetConfirmation(viewport.getCamera().combined);
+        } else if (highScoresOpen) {
+            uiRenderer.renderHighScores(highScoreLines(),
+                    viewport.getCamera().combined);
+        } else if (customDialogOpen) {
             uiRenderer.renderCustomDialog(customColumns, customRows, customMines,
                     customField, viewport.getCamera().combined);
         } else if (menuOpen) {
@@ -169,10 +195,73 @@ public final class GameScreen extends ScreenAdapter {
         viewport.unproject(worldPoint);
     }
 
+    private boolean isModalOpen() {
+        return menuOpen || customDialogOpen || highScoresOpen
+                || resetConfirmationOpen || newRecordDialogOpen;
+    }
+
+    private void handleNewRecordOnWin() {
+        if (recordHandled || engine.state() != GameState.WON) {
+            return;
+        }
+        recordHandled = true;
+        if (!highScores.isBetter(engine.config(), engine.elapsedSeconds())) {
+            return;
+        }
+
+        newRecordName = "";
+        newRecordDialogOpen = true;
+        menuOpen = false;
+        customDialogOpen = false;
+        highScoresOpen = false;
+        resetConfirmationOpen = false;
+        resetInputState();
+    }
+
+    private String[] highScoreLines() {
+        Difficulty[] difficulties = Difficulty.values();
+        String[] lines = new String[difficulties.length + 2];
+        for (int index = 0; index < difficulties.length; index++) {
+            Difficulty difficulty = difficulties[index];
+            HighScores.Score score = highScores.best(difficulty);
+            lines[index] = difficulty.displayName() + ": "
+                    + score.seconds() + " s - " + score.name();
+        }
+        lines[difficulties.length] = "F4/Esc: fechar";
+        lines[difficulties.length + 1] = "Zerar recordes (R)";
+        return lines;
+    }
+
+    private void openHighScores() {
+        highScoresOpen = true;
+        resetConfirmationOpen = false;
+        menuOpen = false;
+        customDialogOpen = false;
+        resetInputState();
+    }
+
+    private void closeHighScores() {
+        highScoresOpen = false;
+        resetConfirmationOpen = false;
+    }
+
+    private void submitNewRecord() {
+        if (engine.config() instanceof Difficulty difficulty) {
+            highScores.submit(difficulty, engine.elapsedSeconds(), newRecordName);
+        }
+        newRecordDialogOpen = false;
+        newRecordName = "";
+    }
+
     private void restart() {
         engine.restart();
         menuOpen = false;
         customDialogOpen = false;
+        highScoresOpen = false;
+        resetConfirmationOpen = false;
+        newRecordDialogOpen = false;
+        recordHandled = false;
+        newRecordName = "";
         resetInputState();
     }
 
@@ -180,8 +269,14 @@ public final class GameScreen extends ScreenAdapter {
         currentConfig = config;
         engine.newGame(config);
         engine.setQuestionMarksEnabled(questionMarks);
+        settings.setLastDifficulty(config);
         menuOpen = false;
         customDialogOpen = false;
+        highScoresOpen = false;
+        resetConfirmationOpen = false;
+        newRecordDialogOpen = false;
+        recordHandled = false;
+        newRecordName = "";
         resetInputState();
         rebuildLayout();
     }
@@ -191,6 +286,7 @@ public final class GameScreen extends ScreenAdapter {
             return;
         }
         uiScale = scale;
+        settings.setUiScale(Math.round(scale));
         resetInputState();
         rebuildLayout();
     }
@@ -198,10 +294,12 @@ public final class GameScreen extends ScreenAdapter {
     private void toggleQuestionMarks() {
         questionMarks = !questionMarks;
         engine.setQuestionMarksEnabled(questionMarks);
+        settings.setQuestionMarks(questionMarks);
     }
 
     private void toggleChordOnNumberClick() {
         chordOnNumberClick = !chordOnNumberClick;
+        settings.setChordOnNumberClick(chordOnNumberClick);
     }
 
     private void openCustomDialog() {
@@ -324,7 +422,7 @@ public final class GameScreen extends ScreenAdapter {
             if (pointer != 0) {
                 return false;
             }
-            if (menuOpen || customDialogOpen) {
+            if (isModalOpen()) {
                 return true;
             }
 
@@ -358,6 +456,30 @@ public final class GameScreen extends ScreenAdapter {
         public boolean touchUp(int screenX, int screenY, int pointer, int button) {
             if (pointer != 0) {
                 return false;
+            }
+            if (newRecordDialogOpen) {
+                return true;
+            }
+            if (resetConfirmationOpen) {
+                if (button == Input.Buttons.LEFT) {
+                    updateWorldPoint(screenX, screenY);
+                    if (uiRenderer.isResetConfirmAt(worldPoint.x, worldPoint.y)) {
+                        highScores.reset();
+                        resetConfirmationOpen = false;
+                    } else if (uiRenderer.isResetCancelAt(worldPoint.x, worldPoint.y)) {
+                        resetConfirmationOpen = false;
+                    }
+                }
+                return true;
+            }
+            if (highScoresOpen) {
+                if (button == Input.Buttons.LEFT) {
+                    updateWorldPoint(screenX, screenY);
+                    if (uiRenderer.isHighScoresResetAt(worldPoint.x, worldPoint.y)) {
+                        resetConfirmationOpen = true;
+                    }
+                }
+                return true;
             }
             if (menuOpen || customDialogOpen) {
                 return true;
@@ -408,10 +530,23 @@ public final class GameScreen extends ScreenAdapter {
 
         @Override
         public boolean keyDown(int keycode) {
+            if (newRecordDialogOpen) {
+                return handleNewRecordKey(keycode);
+            }
+            if (resetConfirmationOpen) {
+                return handleResetConfirmationKey(keycode);
+            }
+            if (highScoresOpen) {
+                return handleHighScoresKey(keycode);
+            }
             if (customDialogOpen) {
                 return handleCustomDialogKey(keycode);
             }
 
+            if (keycode == Input.Keys.F4) {
+                openHighScores();
+                return true;
+            }
             if (keycode == Input.Keys.F5 || keycode == Input.Keys.ESCAPE) {
                 menuOpen = !menuOpen;
                 resetInputState();
@@ -458,6 +593,57 @@ public final class GameScreen extends ScreenAdapter {
                 return true;
             }
             return false;
+        }
+
+        private boolean handleNewRecordKey(int keycode) {
+            if (keycode == Input.Keys.ENTER) {
+                submitNewRecord();
+                return true;
+            }
+            if (keycode == Input.Keys.ESCAPE) {
+                newRecordDialogOpen = false;
+                newRecordName = "";
+                return true;
+            }
+            if (keycode == Input.Keys.BACKSPACE) {
+                if (!newRecordName.isEmpty()) {
+                    newRecordName = newRecordName.substring(0, newRecordName.length() - 1);
+                }
+                return true;
+            }
+
+            if (newRecordName.length() >= HighScores.MAX_NAME_LENGTH) {
+                return true;
+            }
+            char character = nameCharacterForKey(keycode);
+            if (character != 0) {
+                newRecordName += character;
+            }
+            return true;
+        }
+
+        private boolean handleHighScoresKey(int keycode) {
+            if (keycode == Input.Keys.F4 || keycode == Input.Keys.ESCAPE) {
+                closeHighScores();
+                return true;
+            }
+            if (keycode == Input.Keys.R) {
+                resetConfirmationOpen = true;
+            }
+            return true;
+        }
+
+        private boolean handleResetConfirmationKey(int keycode) {
+            if (keycode == Input.Keys.S || keycode == Input.Keys.Y
+                    || keycode == Input.Keys.ENTER) {
+                highScores.reset();
+                resetConfirmationOpen = false;
+                return true;
+            }
+            if (keycode == Input.Keys.N || keycode == Input.Keys.ESCAPE) {
+                resetConfirmationOpen = false;
+            }
+            return true;
         }
 
         private boolean handleCustomDialogKey(int keycode) {
@@ -509,5 +695,25 @@ public final class GameScreen extends ScreenAdapter {
             return keycode - Input.Keys.NUM_0;
         }
         return -1;
+    }
+
+    private static char nameCharacterForKey(int keycode) {
+        if (keycode >= Input.Keys.A && keycode <= Input.Keys.Z) {
+            return (char) ('A' + keycode - Input.Keys.A);
+        }
+        int digit = digitForKey(keycode);
+        if (digit >= 0) {
+            return (char) ('0' + digit);
+        }
+        if (keycode == Input.Keys.SPACE) {
+            return ' ';
+        }
+        if (keycode == Input.Keys.MINUS) {
+            return '-';
+        }
+        if (keycode == Input.Keys.PERIOD) {
+            return '.';
+        }
+        return 0;
     }
 }

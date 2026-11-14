@@ -18,7 +18,7 @@ Checklist vivo da implementação. `spec.md` é a fonte das regras; este arquivo
 | 3 | Regras e estado do jogo | Concluída |
 | 4 | Renderização e interação básica | Concluída |
 | 5 | HUD, dificuldades e interação completa | Concluída |
-| 6 | Persistência, polimento e empacotamento | Pendente |
+| 6 | Persistência, polimento e empacotamento | Concluída |
 
 ---
 
@@ -193,32 +193,38 @@ Status: **Concluída**
 
 ## Etapa 6 — Persistência, polimento e empacotamento
 
-Status: **Pendente**
+Status: **Concluída**
 
 ### Entregas
-- [ ] `Settings` e `HighScores` usando `Preferences`.
-- [ ] Recordes apenas para níveis fixos.
-- [ ] Diálogo de recordes com `F4` e opção de zerar com confirmação.
-- [ ] Opções persistidas: último nível, interrogação, chord por clique, escala, som e tema opcional.
-- [ ] Assets originais ou livres: atlas, fontes e sons.
-- [ ] Empacotamento desktop.
+- [x] `Settings` e `HighScores` usando `Preferences`.
+- [x] Recordes apenas para níveis fixos.
+- [x] Diálogo de recordes com `F4` e opção de zerar com confirmação.
+- [x] Opções persistidas: último nível, interrogação, chord por clique e escala.
+- [x] Assets originais: gráficos desenhados com `ShapeRenderer` e fonte padrão do libGDX; nenhum sprite/som copiado.
+- [x] Empacotamento desktop com JAR executável.
+- [ ] Som e tema escuro (opcionais) não implementados nesta versão.
 
 ### Validação
-- [ ] Recorde salvo persiste após fechar e reabrir o jogo.
-- [ ] Valor inicial de recorde é `999` segundos e `"Anônimo"`.
-- [ ] Nível personalizado não registra recorde.
-- [ ] Opções persistem entre execuções.
-- [ ] Nenhum asset copiado do jogo original da Microsoft.
-- [ ] Checklist manual completo da seção 15.2 do `spec.md`.
-- [ ] `./gradlew lwjgl3:dist` gera o JAR.
-- [ ] JAR gerado executa corretamente.
-- [ ] `./gradlew test` passa.
+- [x] Recorde salvo persiste após fechar e reabrir o jogo.
+- [x] Valor inicial de recorde é `999` segundos e `"Anônimo"`.
+- [x] Nível personalizado não registra recorde.
+- [x] Opções persistem entre execuções.
+- [x] Nenhum asset copiado do jogo original da Microsoft.
+- [x] Checklist manual completo da seção 15.2 do `spec.md`.
+- [x] `./gradlew lwjgl3:dist` gera o JAR.
+- [x] JAR gerado executa corretamente.
+- [x] `./gradlew test` passa (42 testes).
 
 ### Notas/decisões
--
+- `Settings` persiste o último nível (incluindo valores do personalizado), interrogação, chord no número, escala, som e tema; som/tema ficam apenas como opções de modelo, sem efeito visual/sonoro nesta versão.
+- `HighScores` usa as chaves `best.<nível>.time` e `best.<nível>.name`; somente níveis fixos entram no ranking.
+- Ao vencer com tempo menor que o recorde, o jogo abre um diálogo de nome (até 16 caracteres; vazio vira `"Anônimo"`).
+- `F4` abre/fecha os recordes; `R` ou o botão da janela abre a confirmação; `S`/`Y`/`Enter` confirmam e `N`/`Esc` cancelam.
+- `lwjgl3:dist` gera `lwjgl3/build/libs/campo-minado.jar` com dependências e assets embutidos.
+- Validação visual por screenshots temporárias dos diálogos de recordes, confirmação e novo recorde; código de captura removido antes do commit.
 
 ### Bloqueios
--
+- Nenhum.
 
 ---
 
@@ -226,14 +232,14 @@ Status: **Pendente**
 
 Validar os critérios de aceitação da seção 18 do `spec.md`:
 
-- [ ] Regras das seções 3.1–3.11 cumpridas.
-- [ ] Três níveis fixos e o personalizado funcionam conforme a seção 3.3.
-- [ ] Primeiro clique nunca é mina e abre área quando possível.
-- [ ] Interface contém contador de minas, cronômetro, carinha e tabuleiro.
-- [ ] Recordes persistem entre execuções.
-- [ ] Todos os testes da seção 15.1 passam.
-- [ ] `./gradlew lwjgl3:run` e `./gradlew lwjgl3:dist` funcionam.
-- [ ] Nenhum asset protegido por direitos autorais é utilizado.
+- [x] Regras das seções 3.1–3.11 cumpridas.
+- [x] Três níveis fixos e o personalizado funcionam conforme a seção 3.3.
+- [x] Primeiro clique nunca é mina e abre área quando possível.
+- [x] Interface contém contador de minas, cronômetro, carinha e tabuleiro.
+- [x] Recordes persistem entre execuções.
+- [x] Todos os testes da seção 15.1 passam.
+- [x] `./gradlew lwjgl3:run` e `./gradlew lwjgl3:dist` funcionam.
+- [x] Nenhum asset protegido por direitos autorais é utilizado.
 
 ---
 
@@ -254,3 +260,7 @@ Adicionar uma linha por validação relevante.
 | 2026-11-13 | 5 | `./gradlew test --offline` (31 testes) | Passou |
 | 2026-11-13 | 5 | Smoke test + automação de teclado no `lwjgl3:run` | Sem exceções |
 | 2026-11-13 | 5 | Screenshots Iniciante/menu/diálogo/escala 2x/Avançado | HUD, displays, overlays e dimensões corretos |
+| 2026-11-13 | 6 | `./gradlew core:test --rerun-tasks --offline` (42 testes) | Passou |
+| 2026-11-13 | 6 | Screenshots recordes/confirmação/novo recorde | Overlays e botões corretos |
+| 2026-11-13 | 6 | `./gradlew lwjgl3:dist --offline` | `campo-minado.jar` gerado (14 MB) |
+| 2026-11-13 | 6 | `timeout 8s java -jar lwjgl3/build/libs/campo-minado.jar` | Abriu sem exceções |

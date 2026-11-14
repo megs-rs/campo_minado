@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Matrix4;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Disposable;
 import com.exemplo.minesweeper.model.GameEngine;
 import com.exemplo.minesweeper.model.GameState;
@@ -42,6 +43,9 @@ public final class GameUiRenderer implements Disposable {
     private final float displayY;
     private final float leftDisplayX;
     private final float rightDisplayX;
+    private final Rectangle highScoresResetBounds = new Rectangle();
+    private final Rectangle resetConfirmBounds = new Rectangle();
+    private final Rectangle resetCancelBounds = new Rectangle();
 
     public GameUiRenderer(GameLayout layout) {
         this.layout = layout;
@@ -103,6 +107,7 @@ public final class GameUiRenderer implements Disposable {
                 "M - Interrogação: " + (questionMarks ? "ligada" : "desligada"),
                 "X - Chord no número: " + (chordOnNumberClick ? "ligado" : "desligado"),
                 "4/5/6 - Escala: " + (int) uiScale + "x",
+                "F4 - Recordes",
                 "F2 - Reiniciar   F5/Esc - Fechar"
         };
         renderOverlayPanel("Menu", lines, projection);
@@ -121,6 +126,89 @@ public final class GameUiRenderer implements Disposable {
         renderOverlayPanel("Nível personalizado", lines, projection);
     }
 
+    public void renderNewRecord(String difficultyName, int seconds, String name,
+                                Matrix4 projection) {
+        String shownName = name == null || name.isEmpty() ? "Anônimo" : name;
+        String[] lines = {
+                "Nível: " + difficultyName,
+                "Tempo: " + seconds + " s",
+                "Nome: " + shownName + "_",
+                "Máximo de 16 caracteres",
+                "Enter: salvar   Esc: cancelar"
+        };
+        renderOverlayPanel("Novo recorde!", lines, projection);
+    }
+
+    public void renderHighScores(String[] lines, Matrix4 projection) {
+        OverlayGeometry geometry = overlayGeometry(lines.length);
+        float buttonX = geometry.panelX + geometry.padding;
+        float buttonWidth = geometry.panelWidth - geometry.padding * 2f;
+        float lastLineY = geometry.top() - lines.length * geometry.lineStep;
+        float buttonHeight = font.getLineHeight() + 4f * scale;
+        float buttonY = lastLineY - font.getLineHeight() - 2f * scale;
+        highScoresResetBounds.set(buttonX, buttonY, buttonWidth, buttonHeight);
+
+        drawOverlayBase(geometry, projection);
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        drawRaisedRect(buttonX, buttonY, buttonWidth, buttonHeight, PANEL_COLOR);
+        shapes.end();
+
+        batch.setProjectionMatrix(projection);
+        batch.begin();
+        drawCenteredText("Recordes", geometry.panelX + geometry.panelWidth / 2f,
+                geometry.top());
+        float y = geometry.top() - geometry.lineStep;
+        for (int index = 0; index < lines.length - 1; index++) {
+            drawText(lines[index], geometry.panelX + geometry.padding, y);
+            y -= geometry.lineStep;
+        }
+        drawCenteredText(lines[lines.length - 1],
+                geometry.panelX + geometry.panelWidth / 2f, lastLineY);
+        batch.end();
+    }
+
+    public void renderResetConfirmation(Matrix4 projection) {
+        OverlayGeometry geometry = overlayGeometry(2);
+        float messageY = geometry.top() - geometry.lineStep;
+        float buttonRowY = geometry.top() - geometry.lineStep * 2f;
+        float gap = 8f * scale;
+        float buttonWidth = (geometry.panelWidth - geometry.padding * 2f - gap) / 2f;
+        float buttonHeight = font.getLineHeight() + 4f * scale;
+        float buttonY = buttonRowY - font.getLineHeight() - 2f * scale;
+        float leftX = geometry.panelX + geometry.padding;
+        float rightX = leftX + buttonWidth + gap;
+        resetConfirmBounds.set(leftX, buttonY, buttonWidth, buttonHeight);
+        resetCancelBounds.set(rightX, buttonY, buttonWidth, buttonHeight);
+
+        drawOverlayBase(geometry, projection);
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        drawRaisedRect(leftX, buttonY, buttonWidth, buttonHeight, PANEL_COLOR);
+        drawRaisedRect(rightX, buttonY, buttonWidth, buttonHeight, PANEL_COLOR);
+        shapes.end();
+
+        batch.setProjectionMatrix(projection);
+        batch.begin();
+        drawCenteredText("Zerar recordes?", geometry.panelX + geometry.panelWidth / 2f,
+                geometry.top());
+        drawText("Esta ação não pode ser desfeita.",
+                geometry.panelX + geometry.padding, messageY);
+        drawCenteredText("Sim (S)", leftX + buttonWidth / 2f, buttonRowY);
+        drawCenteredText("Não (N)", rightX + buttonWidth / 2f, buttonRowY);
+        batch.end();
+    }
+
+    public boolean isHighScoresResetAt(float worldX, float worldY) {
+        return highScoresResetBounds.contains(worldX, worldY);
+    }
+
+    public boolean isResetConfirmAt(float worldX, float worldY) {
+        return resetConfirmBounds.contains(worldX, worldY);
+    }
+
+    public boolean isResetCancelAt(float worldX, float worldY) {
+        return resetCancelBounds.contains(worldX, worldY);
+    }
+
     @Override
     public void dispose() {
         shapes.dispose();
@@ -133,31 +221,47 @@ public final class GameUiRenderer implements Disposable {
     }
 
     private void renderOverlayPanel(String title, String[] bodyLines, Matrix4 projection) {
+        OverlayGeometry geometry = overlayGeometry(bodyLines.length);
+        drawOverlayBase(geometry, projection);
+
+        batch.setProjectionMatrix(projection);
+        batch.begin();
+        drawCenteredText(title, geometry.panelX + geometry.panelWidth / 2f,
+                geometry.top());
+        float y = geometry.top() - geometry.lineStep;
+        for (String line : bodyLines) {
+            drawText(line, geometry.panelX + geometry.padding, y);
+            y -= geometry.lineStep;
+        }
+        batch.end();
+    }
+
+    private OverlayGeometry overlayGeometry(int bodyLines) {
         float padding = 18f * scale;
         float lineStep = font.getLineHeight() * 1.35f;
-        int totalLines = bodyLines.length + 1;
+        int totalLines = bodyLines + 1;
         float panelWidth = Math.min(layout.getWorldWidth() * 0.92f, 520f * scale);
         float panelHeight = padding * 2f + totalLines * lineStep;
         float panelX = (layout.getWorldWidth() - panelWidth) / 2f;
         float panelY = (layout.getWorldHeight() - panelHeight) / 2f;
+        return new OverlayGeometry(panelX, panelY, panelWidth, panelHeight, padding, lineStep);
+    }
 
+    private void drawOverlayBase(OverlayGeometry geometry, Matrix4 projection) {
         shapes.setProjectionMatrix(projection);
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         shapes.setColor(OVERLAY_COLOR);
         shapes.rect(0f, 0f, layout.getWorldWidth(), layout.getWorldHeight());
-        drawRaisedRect(panelX, panelY, panelWidth, panelHeight, PANEL_COLOR);
+        drawRaisedRect(geometry.panelX, geometry.panelY, geometry.panelWidth,
+                geometry.panelHeight, PANEL_COLOR);
         shapes.end();
+    }
 
-        batch.setProjectionMatrix(projection);
-        batch.begin();
-        float top = panelY + panelHeight - padding;
-        drawCenteredText(title, panelX + panelWidth / 2f, top);
-        float y = top - lineStep;
-        for (String line : bodyLines) {
-            drawText(line, panelX + padding, y);
-            y -= lineStep;
+    private record OverlayGeometry(float panelX, float panelY, float panelWidth,
+                                   float panelHeight, float padding, float lineStep) {
+        private float top() {
+            return panelY + panelHeight - padding;
         }
-        batch.end();
     }
 
     private void drawRaisedRect(float x, float y, float width, float height, Color color) {

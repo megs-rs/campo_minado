@@ -6,8 +6,8 @@ A especificação funcional completa está em [`spec.md`](spec.md). O andamento 
 
 ## Status
 
-- Etapas 1–5 concluídas: regras do jogo, renderização, HUD, carinha, chord, dificuldades, nível personalizado e escala de interface.
-- Próxima etapa: persistência de recordes/configurações, polimento e empacotamento desktop.
+- Etapas 1–6 concluídas: regras, renderização, HUD, carinha, chord, dificuldades, nível personalizado, escala, recordes persistidos, configurações e empacotamento desktop.
+- Versão 1.0 pronta para execução e distribuição como JAR.
 
 ## Requisitos
 
@@ -25,7 +25,9 @@ A primeira execução baixa o Gradle e as dependências do Maven Central.
 
 O comando abre o tabuleiro no nível Iniciante. Use o botão esquerdo para revelar, o direito para marcar e esquerdo+direito (ou o botão do meio) para o chord.
 
-Atalhos: `F2` reinicia, `F5`/`Esc` abre o menu, `1`/`2`/`3` trocam a dificuldade, `C` abre o nível personalizado, `M` alterna interrogações, `X` alterna chord no número e `4`/`5`/`6` mudam a escala da interface.
+Atalhos: `F2` reinicia, `F4` abre os recordes, `F5`/`Esc` abre o menu, `1`/`2`/`3` trocam a dificuldade, `C` abre o nível personalizado, `M` alterna interrogações, `X` alterna chord no número e `4`/`5`/`6` mudam a escala da interface.
+
+Ao vencer um nível fixo com tempo menor que o recorde, o jogo pede um nome (até 16 caracteres; vazio usa `Anônimo`). O menu de recordes (`F4`) permite zerar os recordes com confirmação.
 
 ## Testes
 
@@ -60,12 +62,13 @@ progresso.md checklist e histórico de validação das etapas
 | 3 | Regras e estado do jogo | Concluída |
 | 4 | Renderização e interação básica | Concluída |
 | 5 | HUD, dificuldades e interação completa | Concluída |
-| 6 | Persistência, polimento e empacotamento | Pendente |
+| 6 | Persistência, polimento e empacotamento | Concluída |
 
-Após a etapa 6, o JAR desktop poderá ser gerado com:
+O JAR desktop é gerado com:
 
 ```bash
 ./gradlew lwjgl3:dist
+java -jar lwjgl3/build/libs/campo-minado.jar
 ```
 
 ## Assets
