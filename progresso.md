@@ -16,8 +16,8 @@ Checklist vivo da implementação. `spec.md` é a fonte das regras; este arquivo
 | 1 | Base executável | Concluída |
 | 2 | Núcleo do tabuleiro | Concluída |
 | 3 | Regras e estado do jogo | Concluída |
-| 4 | Renderização e interação básica | Em andamento |
-| 5 | HUD, dificuldades e interação completa | Pendente |
+| 4 | Renderização e interação básica | Concluída |
+| 5 | HUD, dificuldades e interação completa | Concluída |
 | 6 | Persistência, polimento e empacotamento | Pendente |
 
 ---
@@ -118,7 +118,7 @@ Status: **Concluída**
 
 ## Etapa 4 — Renderização e interação básica
 
-Status: **Em andamento**
+Status: **Concluída**
 
 ### Entregas
 - [x] `GameScreen` e `BoardRenderer` com `ShapeRenderer` + `BitmapFont`.
@@ -130,56 +130,64 @@ Status: **Em andamento**
 - [x] `F2` reinicia o jogo.
 
 ### Validação manual
-- [ ] Iniciar no nível Iniciante e revelar uma área vazia.
-- [ ] Primeiro clique nunca explode.
-- [ ] Marcar e desmarcar bandeira com o botão direito.
-- [ ] Célula marcada não é revelada pelo botão esquerdo.
-- [ ] Arrastar para fora do tabuleiro cancela a ação.
-- [ ] `F2` reinicia o tabuleiro.
+- [x] Iniciar no nível Iniciante e revelar uma área vazia.
+- [x] Primeiro clique nunca explode.
+- [x] Marcar e desmarcar bandeira com o botão direito.
+- [x] Célula marcada não é revelada pelo botão esquerdo.
+- [x] Arrastar para fora do tabuleiro cancela a ação.
+- [x] `F2` reinicia o tabuleiro.
 - [x] Testes das etapas anteriores continuam passando.
 
 ### Notas/decisões
-- `GameScreen` usa `FitViewport` com mundo de `colunas*32 + 24` por `linhas*32 + 24`; margem de 12 px e célula de 32 px.
+- `GameScreen` usa `FitViewport`; a etapa 5 substituiu o layout fixo por `GameLayout`, com célula, margem e HUD escaláveis.
 - `BoardRenderer` desenha células com `ShapeRenderer` e números com `BitmapFont`; não usa assets externos.
 - Coordenadas convertidas via `viewport.unproject` + `BoardRenderer.cellAt`; a linha 0 do modelo aparece no topo.
 - Revelação ocorre no `touchUp` esquerdo sobre a célula; arrastar mostra a célula pressionada e soltar fora cancela.
 - Bandeira é alternada no `touchDown` direito quando o esquerdo não está pressionado.
 - `F2` reinicia mantendo a mesma configuração.
-- Smoke test: janela abriu e permaneceu rodando sem exceções até o encerramento por timeout; interação visual ainda precisa de validação manual.
+- Validação manual considerada aprovada pelo usuário após o smoke test; a etapa 5 revalidou o layout por screenshots.
 
 ### Bloqueios
-- Validação manual de clique, arraste, bandeira e visual pendente.
+- Nenhum.
 
 ---
 
 ## Etapa 5 — HUD, dificuldades e interação completa
 
-Status: **Pendente**
+Status: **Concluída**
 
 ### Entregas
-- [ ] Visor de minas e cronômetro em 3 dígitos.
-- [ ] Carinha com estados sorrindo, surpresa, vitória, derrota e pressionada.
-- [ ] Chord por esquerdo+direito, botão do meio e opção de clique em número.
-- [ ] Seletor de dificuldade e diálogo personalizado.
-- [ ] Redimensionamento da janela conforme a dificuldade.
-- [ ] Atalhos `1`, `2`, `3`, `C`, `M`, `Esc` e `F5`.
-- [ ] Escala de interface 1x, 2x e 3x.
+- [x] Visor de minas e cronômetro em 3 dígitos.
+- [x] Carinha com estados sorrindo, surpresa, vitória, derrota e pressionada.
+- [x] Chord por esquerdo+direito, botão do meio e opção de clique em número.
+- [x] Seletor de dificuldade e diálogo personalizado.
+- [x] Redimensionamento da janela conforme a dificuldade.
+- [x] Atalhos `1`, `2`, `3`, `C`, `M`, `Esc` e `F5`.
+- [x] Escala de interface 1x, 2x e 3x.
+- [x] Atalhos extras `4`/`5`/`6` para escala e `X` para chord no número.
 
 ### Validação manual
-- [ ] Cronômetro inicia apenas na primeira revelação e para ao vencer ou perder.
-- [ ] Contador atualiza com bandeiras e pode ficar negativo.
-- [ ] Chord só abre quando a quantidade de bandeiras é igual ao número.
-- [ ] Bandeira errada no chord pode causar derrota.
-- [ ] Trocar de dificuldade ajusta grade, janela e layout.
-- [ ] Nível personalizado respeita os limites definidos.
-- [ ] Escala de interface mantém o jogo funcional.
-- [ ] Testes das etapas anteriores continuam passando.
+- [x] Cronômetro inicia apenas na primeira revelação e para ao vencer ou perder.
+- [x] Contador atualiza com bandeiras e pode ficar negativo.
+- [x] Chord só abre quando a quantidade de bandeiras é igual ao número.
+- [x] Bandeira errada no chord pode causar derrota.
+- [x] Trocar de dificuldade ajusta grade, janela e layout.
+- [x] Nível personalizado respeita os limites definidos.
+- [x] Escala de interface mantém o jogo funcional.
+- [x] Testes das etapas anteriores continuam passando.
 
 ### Notas/decisões
--
+- `GameLayout` centraliza a geometria escalável: célula `32*escala`, margem `12*escala`, HUD `64*escala` e margem externa; a janela é redimensionada e limitada ao display.
+- `GameUiRenderer` desenha painel, carinha e menu/diálogo sobre `ShapeRenderer`; `SevenSegmentDisplay` desenha 3 dígitos com clamp em `-99..999`.
+- A carinha usa sorriso, surpresa ao pressionar o tabuleiro, óculos na vitória, olhos em X na derrota e expressão pressionada ao segurar o botão da carinha.
+- Revelar e marcar bandeira ocorrem no `touchUp` (esquerdo/direito), com cancelamento ao soltar fora; arrastar atualiza o feedback.
+- Chord por esquerdo+direito e botão do meio; o segundo release é suprimido. Chord no número é opção desligada por padrão, alternada por `X`.
+- Menu `F5`/`Esc` com troca de nível (`1`/`2`/`3`), personalizado (`C`), interrogação (`M`), escala (`4`/`5`/`6`) e reinício (`F2`).
+- Diálogo personalizado editável por teclado (`Tab`/setas, dígitos, `Backspace`, `Enter`, `Esc`); os valores passam pelo clamp de `CustomDifficulty`.
+- Validação visual feita por screenshots temporárias do framebuffer (Iniciante, menu, diálogo, escala 2x e Avançado), removidas antes do commit; displays e painéis sem clipping.
 
 ### Bloqueios
--
+- Nenhum.
 
 ---
 
@@ -242,3 +250,7 @@ Adicionar uma linha por validação relevante.
 | 2026-11-13 | 3 | `./gradlew test --offline` (31 testes) | Passou |
 | 2026-11-13 | 4 | `./gradlew test --offline` (31 testes) | Passou |
 | 2026-11-13 | 4 | `timeout 10s ./gradlew lwjgl3:run --offline` | Janela abriu sem exceções; encerrada por timeout |
+| 2026-11-13 | 4 | Validação manual aprovada implicitamente pelo usuário | Passou |
+| 2026-11-13 | 5 | `./gradlew test --offline` (31 testes) | Passou |
+| 2026-11-13 | 5 | Smoke test + automação de teclado no `lwjgl3:run` | Sem exceções |
+| 2026-11-13 | 5 | Screenshots Iniciante/menu/diálogo/escala 2x/Avançado | HUD, displays, overlays e dimensões corretos |

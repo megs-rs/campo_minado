@@ -13,12 +13,6 @@ import com.exemplo.minesweeper.model.CellState;
 import com.exemplo.minesweeper.model.GameState;
 
 public final class BoardRenderer implements Disposable {
-    public static final float CELL_SIZE = 32f;
-    public static final float MARGIN = 12f;
-
-    private static final float BORDER = 3f;
-    private static final float GRID_LINE = 1f;
-
     private static final Color BACKGROUND = new Color(0.72f, 0.72f, 0.72f, 1f);
     private static final Color COVERED_COLOR = new Color(0.78f, 0.78f, 0.78f, 1f);
     private static final Color LIGHT_COLOR = new Color(0.96f, 0.96f, 0.96f, 1f);
@@ -45,67 +39,62 @@ public final class BoardRenderer implements Disposable {
             new Color(0.45f, 0.45f, 0.45f, 1f)
     };
 
+    private final GameLayout layout;
     private final int columns;
     private final int rows;
-    private final float worldWidth;
-    private final float worldHeight;
+    private final float cellSize;
+    private final float border;
+    private final float gridLine;
     private final ShapeRenderer shapes;
     private final SpriteBatch batch;
     private final BitmapFont font;
-    private final GlyphLayout layout;
+    private final GlyphLayout glyphLayout;
 
-    public BoardRenderer(int columns, int rows) {
-        if (columns <= 0 || rows <= 0) {
-            throw new IllegalArgumentException("Columns and rows must be positive");
-        }
-
-        this.columns = columns;
-        this.rows = rows;
-        this.worldWidth = columns * CELL_SIZE + MARGIN * 2f;
-        this.worldHeight = rows * CELL_SIZE + MARGIN * 2f;
+    public BoardRenderer(GameLayout layout) {
+        this.layout = layout;
+        this.columns = layout.getColumns();
+        this.rows = layout.getRows();
+        this.cellSize = layout.getCellSize();
+        this.border = 3f * layout.getScale();
+        this.gridLine = Math.max(1f, layout.getScale());
         this.shapes = new ShapeRenderer();
         this.batch = new SpriteBatch();
         this.font = new BitmapFont();
-        this.font.getData().setScale(1.25f);
-        this.layout = new GlyphLayout();
-    }
-
-    public float getWorldWidth() {
-        return worldWidth;
-    }
-
-    public float getWorldHeight() {
-        return worldHeight;
+        this.font.getData().setScale(1.25f * layout.getScale());
+        this.glyphLayout = new GlyphLayout();
     }
 
     public int[] cellAt(float worldX, float worldY) {
-        float boardWidth = columns * CELL_SIZE;
-        float boardHeight = rows * CELL_SIZE;
-        if (worldX < MARGIN || worldX >= MARGIN + boardWidth
-                || worldY < MARGIN || worldY >= MARGIN + boardHeight) {
+        float boardX = layout.getBoardX();
+        float boardY = layout.getBoardY();
+        if (worldX < boardX || worldX >= boardX + layout.getBoardWidth()
+                || worldY < boardY || worldY >= boardY + layout.getBoardHeight()) {
             return null;
         }
 
-        int column = (int) ((worldX - MARGIN) / CELL_SIZE);
-        int rowFromBottom = (int) ((worldY - MARGIN) / CELL_SIZE);
+        int column = (int) ((worldX - boardX) / cellSize);
+        int rowFromBottom = (int) ((worldY - boardY) / cellSize);
         return new int[]{column, rows - 1 - rowFromBottom};
     }
 
-    public void render(Board board, GameState state, int pressedX, int pressedY, Matrix4 projection) {
+    public void render(Board board, GameState state, int pressedX, int pressedY,
+                       int chordX, int chordY, Matrix4 projection) {
         shapes.setProjectionMatrix(projection);
         shapes.begin(ShapeRenderer.ShapeType.Filled);
 
         shapes.setColor(BACKGROUND);
-        shapes.rect(0f, 0f, worldWidth, worldHeight);
+        shapes.rect(0f, 0f, layout.getWorldWidth(), layout.getWorldHeight());
         shapes.setColor(OPEN_COLOR);
-        shapes.rect(MARGIN, MARGIN, columns * CELL_SIZE, rows * CELL_SIZE);
+        shapes.rect(layout.getBoardX(), layout.getBoardY(),
+                layout.getBoardWidth(), layout.getBoardHeight());
 
         for (int y = 0; y < rows; y++) {
             for (int x = 0; x < columns; x++) {
                 Cell cell = board.get(x, y);
                 float cellX = cellWorldX(x);
                 float cellY = cellWorldY(y);
-                boolean pressed = isPressed(cell, state, x, y, pressedX, pressedY);
+                boolean pressed = isPressed(cell, state, x, y,
+                        pressedX, pressedY, chordX, chordY);
 
                 switch (cell.getState()) {
                     case COVERED -> {
@@ -130,8 +119,8 @@ public final class BoardRenderer implements Disposable {
                     case EXPLODED -> {
                         drawOpenCell(cellX, cellY);
                         shapes.setColor(EXPLODED_COLOR);
-                        shapes.rect(cellX + GRID_LINE, cellY + GRID_LINE,
-                                CELL_SIZE - GRID_LINE * 2f, CELL_SIZE - GRID_LINE * 2f);
+                        shapes.rect(cellX + gridLine, cellY + gridLine,
+                                cellSize - gridLine * 2f, cellSize - gridLine * 2f);
                         drawMine(cellX, cellY);
                     }
                     case MINE_SHOWN -> {
@@ -156,7 +145,8 @@ public final class BoardRenderer implements Disposable {
                 Cell cell = board.get(x, y);
                 float cellX = cellWorldX(x);
                 float cellY = cellWorldY(y);
-                boolean pressed = isPressed(cell, state, x, y, pressedX, pressedY);
+                boolean pressed = isPressed(cell, state, x, y,
+                        pressedX, pressedY, chordX, chordY);
 
                 if (cell.getState() == CellState.REVEALED && cell.getAdjacentMines() > 0) {
                     int number = cell.getAdjacentMines();
@@ -178,100 +168,115 @@ public final class BoardRenderer implements Disposable {
     }
 
     private float cellWorldX(int column) {
-        return MARGIN + column * CELL_SIZE;
+        return layout.getBoardX() + column * cellSize;
     }
 
     private float cellWorldY(int row) {
-        return MARGIN + (rows - 1 - row) * CELL_SIZE;
+        return layout.getBoardY() + (rows - 1 - row) * cellSize;
     }
 
-    private boolean isPressed(Cell cell, GameState state, int x, int y, int pressedX, int pressedY) {
+    private boolean isPressed(Cell cell, GameState state, int x, int y,
+                              int pressedX, int pressedY, int chordX, int chordY) {
         if (state == GameState.WON || state == GameState.LOST) {
             return false;
         }
-        return x == pressedX && y == pressedY
-                && (cell.getState() == CellState.COVERED || cell.getState() == CellState.QUESTION);
+        if (cell.getState() != CellState.COVERED && cell.getState() != CellState.QUESTION) {
+            return false;
+        }
+        if (chordX >= 0 && chordY >= 0) {
+            return Math.abs(x - chordX) <= 1 && Math.abs(y - chordY) <= 1
+                    && (x != chordX || y != chordY);
+        }
+        return x == pressedX && y == pressedY;
     }
 
     private void drawRaisedCell(float x, float y) {
         shapes.setColor(COVERED_COLOR);
-        shapes.rect(x, y, CELL_SIZE, CELL_SIZE);
+        shapes.rect(x, y, cellSize, cellSize);
 
         shapes.setColor(LIGHT_COLOR);
-        shapes.rect(x, y + CELL_SIZE - BORDER, CELL_SIZE - BORDER, BORDER);
-        shapes.rect(x, y, BORDER, CELL_SIZE - BORDER);
+        shapes.rect(x, y + cellSize - border, cellSize - border, border);
+        shapes.rect(x, y, border, cellSize - border);
 
         shapes.setColor(DARK_COLOR);
-        shapes.rect(x + BORDER, y, CELL_SIZE - BORDER, BORDER);
-        shapes.rect(x + CELL_SIZE - BORDER, y + BORDER, BORDER, CELL_SIZE - BORDER);
+        shapes.rect(x + border, y, cellSize - border, border);
+        shapes.rect(x + cellSize - border, y + border, border, cellSize - border);
     }
 
     private void drawPressedCell(float x, float y) {
         shapes.setColor(PRESSED_COLOR);
-        shapes.rect(x, y, CELL_SIZE, CELL_SIZE);
+        shapes.rect(x, y, cellSize, cellSize);
 
         shapes.setColor(DARK_COLOR);
-        shapes.rect(x, y + CELL_SIZE - BORDER, CELL_SIZE - BORDER, BORDER);
-        shapes.rect(x, y, BORDER, CELL_SIZE - BORDER);
+        shapes.rect(x, y + cellSize - border, cellSize - border, border);
+        shapes.rect(x, y, border, cellSize - border);
 
         shapes.setColor(LIGHT_COLOR);
-        shapes.rect(x + BORDER, y, CELL_SIZE - BORDER, BORDER);
-        shapes.rect(x + CELL_SIZE - BORDER, y + BORDER, BORDER, CELL_SIZE - BORDER);
+        shapes.rect(x + border, y, cellSize - border, border);
+        shapes.rect(x + cellSize - border, y + border, border, cellSize - border);
     }
 
     private void drawOpenCell(float x, float y) {
         shapes.setColor(OPEN_COLOR);
-        shapes.rect(x, y, CELL_SIZE, CELL_SIZE);
+        shapes.rect(x, y, cellSize, cellSize);
 
         shapes.setColor(OPEN_BORDER_COLOR);
-        shapes.rect(x, y, CELL_SIZE, GRID_LINE);
-        shapes.rect(x, y + CELL_SIZE - GRID_LINE, CELL_SIZE, GRID_LINE);
-        shapes.rect(x, y, GRID_LINE, CELL_SIZE);
-        shapes.rect(x + CELL_SIZE - GRID_LINE, y, GRID_LINE, CELL_SIZE);
+        shapes.rect(x, y, cellSize, gridLine);
+        shapes.rect(x, y + cellSize - gridLine, cellSize, gridLine);
+        shapes.rect(x, y, gridLine, cellSize);
+        shapes.rect(x + cellSize - gridLine, y, gridLine, cellSize);
     }
 
     private void drawFlag(float x, float y) {
-        float centerX = x + CELL_SIZE / 2f;
-        float centerY = y + CELL_SIZE / 2f;
+        float centerX = x + cellSize / 2f;
+        float centerY = y + cellSize / 2f;
+        float scale = layout.getScale();
 
         shapes.setColor(POLE_COLOR);
-        shapes.rectLine(centerX - 4f, centerY - 9f, centerX - 4f, centerY + 10f, 2f);
-        shapes.rect(centerX - 9f, centerY - 10f, 10f, 2f);
+        shapes.rectLine(centerX - 4f * scale, centerY - 9f * scale,
+                centerX - 4f * scale, centerY + 10f * scale, 2f * scale);
+        shapes.rect(centerX - 9f * scale, centerY - 10f * scale, 10f * scale, 2f * scale);
 
         shapes.setColor(FLAG_COLOR);
-        shapes.triangle(centerX - 3f, centerY + 10f,
-                centerX + 10f, centerY + 5f,
-                centerX - 3f, centerY);
+        shapes.triangle(centerX - 3f * scale, centerY + 10f * scale,
+                centerX + 10f * scale, centerY + 5f * scale,
+                centerX - 3f * scale, centerY);
     }
 
     private void drawMine(float x, float y) {
-        float centerX = x + CELL_SIZE / 2f;
-        float centerY = y + CELL_SIZE / 2f;
-        float radius = CELL_SIZE * 0.30f;
+        float centerX = x + cellSize / 2f;
+        float centerY = y + cellSize / 2f;
+        float radius = cellSize * 0.30f;
+        float scale = layout.getScale();
 
         shapes.setColor(MINE_COLOR);
-        shapes.circle(centerX, centerY, CELL_SIZE * 0.18f, 16);
-        shapes.rectLine(centerX - radius, centerY, centerX + radius, centerY, 2f);
-        shapes.rectLine(centerX, centerY - radius, centerX, centerY + radius, 2f);
+        shapes.circle(centerX, centerY, cellSize * 0.18f, 16);
+        shapes.rectLine(centerX - radius, centerY, centerX + radius, centerY, 2f * scale);
+        shapes.rectLine(centerX, centerY - radius, centerX, centerY + radius, 2f * scale);
 
         float diagonal = radius * 0.70f;
         shapes.rectLine(centerX - diagonal, centerY - diagonal,
-                centerX + diagonal, centerY + diagonal, 2f);
+                centerX + diagonal, centerY + diagonal, 2f * scale);
         shapes.rectLine(centerX - diagonal, centerY + diagonal,
-                centerX + diagonal, centerY - diagonal, 2f);
+                centerX + diagonal, centerY - diagonal, 2f * scale);
     }
 
     private void drawWrongMark(float x, float y) {
+        float padding = 8f * layout.getScale();
+        float size = cellSize - padding * 2f;
+
         shapes.setColor(WRONG_FLAG_COLOR);
-        shapes.rectLine(x + 8f, y + 8f, x + CELL_SIZE - 8f, y + CELL_SIZE - 8f, 3f);
-        shapes.rectLine(x + 8f, y + CELL_SIZE - 8f, x + CELL_SIZE - 8f, y + 8f, 3f);
+        shapes.rectLine(x + padding, y + padding, x + padding + size, y + padding + size,
+                3f * layout.getScale());
+        shapes.rectLine(x + padding, y + padding + size, x + padding + size, y + padding,
+                3f * layout.getScale());
     }
 
     private void drawCenteredText(String text, float cellX, float cellY, Color color) {
         font.setColor(color);
-        layout.setText(font, text);
-        font.draw(batch, layout,
-                cellX + (CELL_SIZE - layout.width) / 2f,
-                cellY + (CELL_SIZE + layout.height) / 2f);
+        glyphLayout.setText(font, text);
+        font.draw(batch, glyphLayout,
+                cellX + (cellSize - glyphLayout.width) / 2f,
+                cellY + (cellSize + glyphLayout.height) / 2f);
     }
 }

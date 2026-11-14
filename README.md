@@ -6,9 +6,8 @@ A especificação funcional completa está em [`spec.md`](spec.md). O andamento 
 
 ## Status
 
-- Etapas 1–3 concluídas: núcleo do tabuleiro e `GameEngine` com primeiro clique seguro, cronômetro, bandeiras, chord, vitória e derrota.
-- Etapa 4 implementada: renderização do tabuleiro e interação básica; validação manual de interação/visual pendente.
-- Próxima etapa: HUD, dificuldades e interação completa.
+- Etapas 1–5 concluídas: regras do jogo, renderização, HUD, carinha, chord, dificuldades, nível personalizado e escala de interface.
+- Próxima etapa: persistência de recordes/configurações, polimento e empacotamento desktop.
 
 ## Requisitos
 
@@ -24,7 +23,9 @@ A primeira execução baixa o Gradle e as dependências do Maven Central.
 ./gradlew lwjgl3:run
 ```
 
-O comando abre o tabuleiro no nível Iniciante. O HUD e a troca de dificuldade serão adicionados na etapa 5.
+O comando abre o tabuleiro no nível Iniciante. Use o botão esquerdo para revelar, o direito para marcar e esquerdo+direito (ou o botão do meio) para o chord.
+
+Atalhos: `F2` reinicia, `F5`/`Esc` abre o menu, `1`/`2`/`3` trocam a dificuldade, `C` abre o nível personalizado, `M` alterna interrogações, `X` alterna chord no número e `4`/`5`/`6` mudam a escala da interface.
 
 ## Testes
 
@@ -57,8 +58,8 @@ progresso.md checklist e histórico de validação das etapas
 | 1 | Base executável | Concluída |
 | 2 | Núcleo do tabuleiro | Concluída |
 | 3 | Regras e estado do jogo | Concluída |
-| 4 | Renderização e interação básica | Em andamento |
-| 5 | HUD, dificuldades e interação completa | Pendente |
+| 4 | Renderização e interação básica | Concluída |
+| 5 | HUD, dificuldades e interação completa | Concluída |
 | 6 | Persistência, polimento e empacotamento | Pendente |
 
 Após a etapa 6, o JAR desktop poderá ser gerado com:
