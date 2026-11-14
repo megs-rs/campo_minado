@@ -202,10 +202,10 @@ Status: **Concluída**
 - [x] Opções persistidas: último nível, interrogação, chord por clique e escala.
 - [x] Assets originais: gráficos desenhados com `ShapeRenderer` e fonte padrão do libGDX; nenhum sprite/som copiado.
 - [x] Empacotamento desktop com JAR executável.
-- [ ] Som e tema escuro (opcionais) não implementados nesta versão.
+- Som e tema escuro (opcionais): não implementados nesta versão; flags persistidas para trabalho futuro.
 
 ### Validação
-- [x] Recorde salvo persiste após fechar e reabrir o jogo.
+- [x] Recorde salvo persiste entre instâncias (teste automatizado com `Preferences` em memória).
 - [x] Valor inicial de recorde é `999` segundos e `"Anônimo"`.
 - [x] Nível personalizado não registra recorde.
 - [x] Opções persistem entre execuções.
@@ -219,7 +219,7 @@ Status: **Concluída**
 - `Settings` persiste o último nível (incluindo valores do personalizado), interrogação, chord no número, escala, som e tema; som/tema ficam apenas como opções de modelo, sem efeito visual/sonoro nesta versão.
 - `HighScores` usa as chaves `best.<nível>.time` e `best.<nível>.name`; somente níveis fixos entram no ranking.
 - Ao vencer com tempo menor que o recorde, o jogo abre um diálogo de nome (até 16 caracteres; vazio vira `"Anônimo"`).
-- `F4` abre/fecha os recordes; `R` ou o botão da janela abre a confirmação; `S`/`Y`/`Enter` confirmam e `N`/`Esc` cancelam.
+- `F4` abre/fecha os recordes; `R` ou o botão “Zerar recordes” abre a confirmação; `S`/`Y`/`Enter` confirmam e `N`/`Esc` cancelam.
 - `lwjgl3:dist` gera `lwjgl3/build/libs/campo-minado.jar` com dependências e assets embutidos.
 - Validação visual por screenshots temporárias dos diálogos de recordes, confirmação e novo recorde; código de captura removido antes do commit.
 
@@ -264,3 +264,4 @@ Adicionar uma linha por validação relevante.
 | 2026-11-13 | 6 | Screenshots recordes/confirmação/novo recorde | Overlays e botões corretos |
 | 2026-11-13 | 6 | `./gradlew lwjgl3:dist --offline` | `campo-minado.jar` gerado (14 MB) |
 | 2026-11-13 | 6 | `timeout 8s java -jar lwjgl3/build/libs/campo-minado.jar` | Abriu sem exceções |
+| 2026-11-13 | 6 | Revisão de `README.md`, `AGENTS.md` e `spec.md` | Alinhados ao código atual |

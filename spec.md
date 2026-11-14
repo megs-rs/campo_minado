@@ -144,7 +144,7 @@ Aplicável a uma célula `REVEALED` com número `n > 0`:
 
 - **Painel superior:** contador de minas (esquerda), carinha (centro), cronômetro (direita).
 - **Tabuleiro:** grade de células quadradas com bordas em relevo (estilo 3D: luz no topo/esquerda, sombra embaixo/direita) nas células fechadas; células abertas com borda plana fina.
-- **Menu:** como libGDX não tem menu nativo, implementar a barra superior com **Scene2D** (`Table` + `TextButton`/`SelectBox`/popup) ou como painel lateral/overlay acionado por teclas.
+- **Menu:** como libGDX não tem menu nativo, implementar a barra superior com **Scene2D** (`Table` + `TextButton`/`SelectBox`/popup) ou como painel lateral/overlay acionado por teclas. A v1.0 usa o overlay acionado por `F5`/`Esc`, sem barra de menu permanente.
 
 ### 4.2 Dimensões (tamanho lógico)
 - Célula: **32×32 px** (padrão; escalável por opção 1x/2x/3x).
@@ -204,11 +204,16 @@ Fundo do tabuleiro: cinza claro (`#C0C0C0` aproximado). Mina explodida: fundo ve
 | Tecla | Ação |
 |---|---|
 | `F2` | Novo jogo |
-| `F4` | Abrir recordes |
+| `F4` | Abrir/fechar recordes |
 | `F5` / `Esc` | Abrir/fechar menu de opções |
 | `1` / `2` / `3` | Iniciante / Intermediário / Avançado |
 | `C` | Abrir dialog de nível personalizado |
 | `M` | Alternar marcas de interrogação |
+| `X` | Alternar chord no clique esquerdo em número |
+| `4` / `5` / `6` | Escala da interface 1x / 2x / 3x |
+| `R` (nos recordes) | Abrir confirmação para zerar recordes |
+| `S` / `Y` / `Enter` | Confirmar o reset dos recordes |
+| `N` / `Esc` | Cancelar o reset dos recordes |
 | `Setas` + `Espaço`/`Enter` | (Opcional) navegar o cursor e revelar |
 | `F` (com cursor de teclado) | (Opcional) marcar bandeira |
 
@@ -234,32 +239,31 @@ Fundo do tabuleiro: cinza claro (`#C0C0C0` aproximado). Mina explodida: fundo ve
 ```
 core/src/main/java/com/exemplo/minesweeper/
 ├── MinesweeperGame.java          // extends Game; ponto de entrada libGDX
-├── model/
-│   ├── Cell.java
+├── model/                        // regras puras, sem dependência de libGDX
+│   ├── BoardConfig.java
 │   ├── Board.java
-│   ├── Difficulty.java           // enum + config personalizada
-│   ├── GameState.java            // enum: READY, PLAYING, WON, LOST
-│   ├── GameEngine.java           // regras: revelar, marcar, chord, vitória/derrota
-│   ├── MinePlacer.java           // posicionamento aleatório com zona segura
-│   └── GameListener.java         // callbacks (opcional)
-├── screen/
-│   ├── GameScreen.java           // tela principal
-│   └── HighScoresScreen.java     // ou Dialog
-├── view/
+│   ├── Cell.java
+│   ├── CellState.java
+│   ├── CustomDifficulty.java
+│   ├── Difficulty.java
+│   ├── FloodFill.java
+│   ├── GameEngine.java
+│   ├── GameState.java
+│   ├── IntBiConsumer.java
+│   └── MinePlacer.java
+├── persistence/
+│   ├── HighScores.java
+│   └── Settings.java             // usa com.badlogic.gdx.Preferences
+├── render/
 │   ├── BoardRenderer.java        // desenha grade e células
-│   ├── SevenSegmentDisplay.java  // desenha contadores
-│   ├── FaceButton.java
-│   └── Assets.java               // AssetManager, atlas, fontes
-├── input/
-│   └── BoardInputHandler.java    // traduz mouse/teclado em ações do engine
-├── ui/
-│   ├── MenuBar.java              // Scene2D
-│   ├── CustomGameDialog.java
-│   └── HighScoresDialog.java
-└── persistence/
-    ├── HighScores.java
-    └── Settings.java             // usa com.badlogic.gdx.Preferences
+│   ├── GameLayout.java           // geometria escalável
+│   ├── GameUiRenderer.java       // HUD, menu e diálogos
+│   └── SevenSegmentDisplay.java  // desenha contadores
+└── screen/
+    └── GameScreen.java           // tela principal e input
 ```
+
+A v1.0 usa `ShapeRenderer` + `BitmapFont` diretamente, sem Scene2D, TextureAtlas ou `AssetManager`. Classes separadas de `FaceButton`, `Assets` e telas/dialogs de recordes não foram necessárias.
 
 ### 6.3 Máquina de estados do jogo
 
@@ -272,7 +276,7 @@ READY ──(1º clique revelar)──► PLAYING ──(todas seguras abertas)�
 
 - `READY`: tabuleiro vazio (minas ainda não posicionadas), cronômetro parado em 0.
 - `PLAYING`: minas posicionadas, cronômetro correndo.
-- `WON` / `LOST`: entradas de tabuleiro ignoradas (apenas reiniciar/menu).
+- `WON` / `LOST`: entradas de tabuleiro ignoradas (restam reiniciar, menu e, na vitória, o diálogo de recorde).
 
 ---
 
@@ -282,34 +286,51 @@ READY ──(1º clique revelar)──► PLAYING ──(todas seguras abertas)�
 
 ```java
 public final class Cell {
-    public boolean mine;
-    public int adjacentMines;      // 0..8, calculado após posicionar minas
-    public CellState state;        // COVERED, FLAGGED, QUESTION, REVEALED
-    // Estados de fim de jogo podem ser derivados (exploded/wrongFlag) ou guardados:
-    public boolean exploded;       // true apenas para a mina que causou a derrota
+    private boolean mine;
+    private int adjacentMines;     // 0..8, calculado após posicionar minas
+    private CellState state = CellState.COVERED;
+
+    public boolean hasMine();
+    public int getAdjacentMines();
+    public CellState getState();
 }
 ```
+
+`EXPLODED`, `WRONG_FLAG` e `MINE_SHOWN` são estados de `CellState`; não há flag booleana separada para explosão.
 
 ### 7.2 `Board`
 - Armazenamento em **array 1D** `Cell[] cells` com índice `idx = y * cols + x` (melhor cache e simplicidade).
 - Métodos principais:
   - `Cell get(int x, int y)`
   - `boolean inBounds(int x, int y)`
+  - `int indexOf(int x, int y)`
   - `void forEachNeighbor(int x, int y, IntBiConsumer action)`
   - `int countFlagsAround(int x, int y)`
-  - `void reset(int cols, int rows, int mines)`
-- Campos: `cols`, `rows`, `mines`, `revealedCount`, `flagCount`.
+  - `void setState(int x, int y, CellState state)`
+  - `void setMine(int x, int y, boolean mine)`
+  - `void clearMines()`
+  - `void recalculateAdjacentMines()`
+  - `void reset(int columns, int rows, int mines)`
+- Getters: `getColumns()`, `getRows()`, `getMines()`, `getRevealedCount()`, `getFlagCount()`.
+- `setState` mantém `revealedCount` e `flagCount` sincronizados; `FLAGGED` e `WRONG_FLAG` contam como bandeira.
 
 ### 7.3 `GameEngine` (API pública)
 
 ```java
 public final class GameEngine {
+    GameEngine(BoardConfig config);
+    GameEngine(BoardConfig config, long seed); // reprodutibilidade em testes
+
     GameState state();
+    Board board();
+    BoardConfig config();
     int remainingMines();          // mines - flags (pode ser negativo)
     int elapsedSeconds();
+    boolean isQuestionMarksEnabled();
+    void setQuestionMarksEnabled(boolean enabled);
 
-    void newGame(Difficulty d);
-    void restart();                // mesma dificuldade
+    void newGame(BoardConfig config);
+    void restart();                // mesma configuração
     void reveal(int x, int y);
     void toggleFlag(int x, int y);
     void chord(int x, int y);
@@ -339,16 +360,19 @@ posicionarMinas(board, cliqueX, cliqueY):
 
 ```
 revelarCascata(x, y):
+    se célula inicial fora dos limites, com mina, FLAGGED ou REVEALED: retornar
     fila = [(x, y)]
     enquanto fila não vazia:
-        (cx, cy) = fila.pop()
+        (cx, cy) = fila.removeFirst()
         c = board.get(cx, cy)
-        se c.state == REVEALED ou c.state == FLAGGED: continuar
+        se c.mine ou c.state == REVEALED ou c.state == FLAGGED: continuar
         c.state = REVEALED; revealedCount++
         se c.adjacentMines == 0:
             para cada vizinho v (dentro dos limites):
-                se v.state ∈ {COVERED, QUESTION} e !v.mine: fila.push(v)
+                se !v.mine e v.state ∈ {COVERED, QUESTION}: fila.addLast(v)
 ```
+
+`QUESTION` é aberta pelo flood fill; `FLAGGED` e minas são ignoradas.
 
 ### 8.3 Verificação de vitória
 `revealedCount == cols * rows - mines` → `WON`.
@@ -375,9 +399,11 @@ Ver seção 3.7. Reaproveitar `reveal()` para cada vizinho elegível; se qualque
 | Último nível jogado (incl. valores do personalizado) | Iniciante | Sim |
 | Marcas de interrogação (`?`) | Desligado | Sim |
 | Chord com clique esquerdo em número | Desligado | Sim |
-| Escala da interface (1x / 2x / 3x) | 1x (ou 2x em HiDPI) | Sim |
+| Escala da interface (1x / 2x / 3x) | 1x | Sim |
 | Som ligado | Ligado | Sim |
 | Tema (claro/escuro) | Claro (opcional) | Sim |
+
+Na v1.0, som e tema escuro são apenas flags persistidas: não há UI, assets de áudio nem mudança visual implementados. A escala é ajustada manualmente por `4`/`5`/`6`.
 
 ---
 
@@ -397,6 +423,8 @@ Organizar em um **TextureAtlas** (`ui.atlas`) gerado com o `gdx-tools` TexturePa
 - Usar **NinePatch** para bordas redimensionáveis.
 - Filtros de textura: `Nearest` para estética pixelada.
 
+A v1.0 usa a alternativa sem sprites: não inclui `TextureAtlas`, arquivos `.fnt` nem sons. O diretório `assets/` existe apenas como ponto de extensão.
+
 ### 11.2 Fontes
 - Fonte bitmap (`.fnt`) gerada com Hiero/FreeType para os números 1–8 e textos de UI.
 - Usar fonte com licença livre (ex.: OFL).
@@ -409,11 +437,11 @@ Organizar em um **TextureAtlas** (`ui.atlas`) gerado com o `gdx-tools` TexturePa
 
 ## 12. Renderização
 
-- **`SpriteBatch`** para células e displays (uma única chamada `begin/end` por frame).
-- **`OrthographicCamera` + `Viewport`** com origem no canto inferior esquerdo; converter a linha `y` da grade para que a linha 0 fique no **topo** (ou inverter ao desenhar).
-- Ordem de desenho: fundo → moldura → células → displays → carinha → overlay de menus (Scene2D `Stage.draw()` por último).
-- Otimização: em tabuleiros 30×16 (480 células), desenhar todas as células a cada frame é trivial; não é necessário cache complexo.
-- Renderização sob demanda opcional: chamar `Gdx.graphics.requestRendering()` em eventos de input e a cada tique do cronômetro.
+- **`ShapeRenderer`** para fundo, células, HUD, displays de 7 segmentos, carinha e overlays; **`SpriteBatch` + `BitmapFont`** para números e textos.
+- **`OrthographicCamera` + `FitViewport`** com origem no canto inferior esquerdo; a linha 0 da grade é invertida para aparecer no **topo**.
+- Ordem de desenho: fundo → células → HUD/carinha → overlay ativo (menu, personalizado, recordes ou confirmação).
+- Otimização: em tabuleiros de até 30×24 (720 células), desenhar todas as células a cada frame é trivial; não há cache complexo nem `Scene2D`.
+- A renderização é contínua na v1.0; renderização sob demanda permanece como otimização opcional.
 
 ---
 
@@ -422,20 +450,22 @@ Organizar em um **TextureAtlas** (`ui.atlas`) gerado com o `gdx-tools` TexturePa
 ```
 Launcher (lwjgl3)
   └─► MinesweeperGame.create()
-        ├─ Assets.load()
-        ├─ Settings.load() / HighScores.load()
-        └─ setScreen(new GameScreen(difficultyAtual))
+        ├─ Gdx.app.getPreferences("minesweeper")
+        ├─ new Settings(preferences) / new HighScores(preferences)
+        └─ setScreen(new GameScreen(new GameEngine(settings.getLastDifficulty()),
+                                    settings, highScores))
 
 GameScreen.render(delta):
     engine.update(delta)
-    input é tratado por callbacks (InputProcessor)
+    verifica novo recorde ao vencer
+    input é tratado por InputAdapter (GameInput)
     Gdx.gl.glClear(...)
-    boardRenderer.draw(engine)
-    hud.draw(engine)        // contador, carinha, cronômetro
-    stage.act(delta); stage.draw()
+    boardRenderer.render(engine.board(), ...)
+    uiRenderer.renderHud(engine, ...)
+    uiRenderer.render<Overlay> se menu/diálogo estiver aberto
 ```
 
-Mudança de dificuldade: `engine.newGame(d)` → redimensionar janela → recalcular viewport/layout → resetar estados visuais.
+Mudança de dificuldade: `engine.newGame(config)` → persistir em `Settings` → recalcular viewport/layout → redimensionar a janela → resetar estados visuais.
 
 ---
 
@@ -466,29 +496,33 @@ Mudança de dificuldade: `engine.newGame(d)` → redimensionar janela → recalc
 9. **Cronômetro:** não inicia ao marcar bandeira; para em 999; para ao fim do jogo.
 10. **Validação do nível personalizado:** clamp de colunas/linhas/minas.
 
-### 15.2 Testes manuais (checklist)
-- [ ] Todos os níveis iniciam com janela de tamanho correto.
-- [ ] Botão direito alterna bandeira (e `?` se habilitado).
-- [ ] Combinação esquerdo+direito e botão do meio executam chord.
-- [ ] Arrastar com botão pressionado cancela ao soltar fora.
-- [ ] Carinha muda corretamente em todos os estados.
-- [ ] Recorde é salvo e persiste após reiniciar o aplicativo.
-- [ ] Redimensionar a janela mantém o jogo funcional.
+### 15.2 Testes manuais (checklist executado na v1.0)
+- [x] Todos os níveis iniciam com janela de tamanho correto.
+- [x] Botão direito alterna bandeira (e `?` se habilitado).
+- [x] Combinação esquerdo+direito e botão do meio executam chord.
+- [x] Arrastar com botão pressionado cancela ao soltar fora.
+- [x] Carinha muda corretamente em todos os estados.
+- [x] Recorde é salvo e persiste entre execuções (teste automatizado com `Preferences` em memória).
+- [x] Redimensionar a janela mantém o jogo funcional.
+
+A persistência de recordes também é coberta por testes automatizados com `Preferences` em memória; a validação visual foi feita por screenshots temporárias.
 
 ---
 
-## 16. Roadmap de implementação (sugerido)
+## 16. Roadmap executado
 
-| Fase | Entregas |
+O roadmap foi consolidado em seis etapas, detalhadas em [`progresso.md`](progresso.md):
+
+| Etapa | Entregas |
 |---|---|
-| **1. Núcleo** | `Cell`, `Board`, `MinePlacer`, `GameEngine` + testes unitários |
-| **2. Protótipo visual** | `GameScreen` com `ShapeRenderer` e `BitmapFont`, input básico (revelar/bandeira) |
-| **3. HUD** | Contador de minas, cronômetro, carinha, reinício |
-| **4. Interação avançada** | Chord, feedback de botão pressionado, arrastar/cancelar |
-| **5. Níveis** | Seletor de dificuldade, nível personalizado, redimensionamento da janela |
-| **6. Persistência** | Recordes, configurações |
-| **7. Polimento** | Atlas de sprites, sons, escala de UI, tema |
-| **8. Empacotamento** | JAR executável (`lwjgl3:dist`), instaladores opcionais (jpackage) |
+| **1. Base executável** | Estrutura Gradle, módulos `core`/`lwjgl3`, launcher e testes |
+| **2. Núcleo do tabuleiro** | `Cell`, `Board`, `MinePlacer`, flood fill iterativo + testes |
+| **3. Regras e estado** | `GameEngine`, estados, cronômetro, chord, vitória/derrota |
+| **4. Renderização e interação básica** | `GameScreen`, `BoardRenderer`, revelar/bandeira/arrastar, `F2` |
+| **5. HUD e interação completa** | Displays, carinha, dificuldades, personalizado, escala, chord |
+| **6. Persistência e empacotamento** | Recordes/configurações com `Preferences`, JAR via `lwjgl3:dist` |
+
+Atlas de sprites, sons e tema escuro permanecem como evolução opcional (seções 11 e 17).
 
 ---
 
@@ -524,14 +558,21 @@ Mudança de dificuldade: `engine.newGame(d)` → redimensionar janela → recalc
 public class MinesweeperGame extends Game {
     @Override
     public void create() {
-        Assets.load();
-        setScreen(new GameScreen(this, Settings.lastDifficulty()));
+        Gdx.gl.glClearColor(0.12f, 0.12f, 0.12f, 1f);
+        Preferences preferences = Gdx.app.getPreferences(Settings.PREFERENCES_NAME);
+        Settings settings = new Settings(preferences);
+        HighScores highScores = new HighScores(preferences);
+        setScreen(new GameScreen(
+                new GameEngine(settings.getLastDifficulty()), settings, highScores));
     }
 
     @Override
     public void dispose() {
-        getScreen().dispose();
-        Assets.dispose();
+        Screen screen = getScreen();
+        if (screen != null) {
+            screen.dispose();
+        }
+        super.dispose();
     }
 }
 ```
@@ -539,11 +580,13 @@ public class MinesweeperGame extends Game {
 ### 19.2 Conversão de coordenadas do mouse para célula
 
 ```java
-Vector3 v = new Vector3(screenX, screenY, 0);
-viewport.unproject(v);
-int cx = (int) ((v.x - boardOriginX) / cellSize);
-int cy = rows - 1 - (int) ((v.y - boardOriginY) / cellSize); // linha 0 no topo
-if (engine.board().inBounds(cx, cy)) { /* ... */ }
+Vector2 world = new Vector2(screenX, screenY);
+viewport.unproject(world);
+int[] cell = boardRenderer.cellAt(world.x, world.y); // já inverte a linha 0 para o topo
+if (cell != null) {
+    int cx = cell[0];
+    int cy = cell[1];
+}
 ```
 
 ### 19.3 Detecção de chord (esquerdo + direito)
@@ -551,41 +594,83 @@ if (engine.board().inBounds(cx, cy)) { /* ... */ }
 ```java
 @Override
 public boolean touchDown(int sx, int sy, int pointer, int button) {
-    if (button == Buttons.LEFT)  leftDown = true;
-    if (button == Buttons.RIGHT) rightDown = true;
-    if (button == Buttons.MIDDLE) middleDown = true;
-    chordPending = (leftDown && rightDown) || middleDown;
-    updatePressedPreview(sx, sy);
-    return true;
+    if (button == Input.Buttons.LEFT) {
+        leftDown = true;
+        updateChordGesture();
+        return true;
+    }
+    if (button == Input.Buttons.RIGHT) {
+        rightDown = true;
+        updateChordGesture();
+        return true;
+    }
+    if (button == Input.Buttons.MIDDLE) {
+        middleDown = true;
+        chordAt(sx, sy);
+        return true;
+    }
+    return false;
 }
 
 @Override
 public boolean touchUp(int sx, int sy, int pointer, int button) {
-    Point cell = toCell(sx, sy);
-    if (chordPending && cell != null) {
-        engine.chord(cell.x, cell.y);
-    } else if (button == Buttons.LEFT && cell != null && !rightDown) {
-        engine.reveal(cell.x, cell.y);
-    } else if (button == Buttons.RIGHT && cell != null && !leftDown) {
-        engine.toggleFlag(cell.x, cell.y);
+    if (button == Input.Buttons.LEFT) {
+        leftDown = false;
+        if (chordGesture) {
+            chordAt(sx, sy);
+            chordGesture = false;
+            suppressNextRelease = true;
+        } else if (!suppressNextRelease) {
+            revealOrChordAt(sx, sy);
+        }
+        finishRelease();
+        return true;
     }
-    if (button == Buttons.LEFT)  leftDown = false;
-    if (button == Buttons.RIGHT) rightDown = false;
-    if (button == Buttons.MIDDLE) middleDown = false;
-    if (!leftDown && !rightDown && !middleDown) chordPending = false;
-    clearPressedPreview();
-    return true;
+    if (button == Input.Buttons.RIGHT) {
+        rightDown = false;
+        if (chordGesture) {
+            chordAt(sx, sy);
+            chordGesture = false;
+            suppressNextRelease = true;
+        } else if (!suppressNextRelease) {
+            toggleFlagAt(sx, sy);
+        }
+        finishRelease();
+        return true;
+    }
+    if (button == Input.Buttons.MIDDLE) {
+        middleDown = false;
+        finishRelease();
+        return true;
+    }
+    return false;
+}
+
+private void updateChordGesture() {
+    if (leftDown && rightDown) {
+        chordGesture = true;
+    }
+}
+
+private void finishRelease() {
+    if (!leftDown && !rightDown) {
+        chordGesture = false;
+        suppressNextRelease = false;
+    }
 }
 ```
 
-> Observação: o clique direito simples costuma ser tratado em `touchDown` na maioria das implementações para resposta imediata; a abordagem acima (executar ao soltar) prioriza a detecção correta de chord. Escolher uma abordagem e mantê-la consistente.
+> A implementação executa revelar/bandeira/chord ao soltar e suprime o release do segundo botão do chord. O clique direito simples também é tratado no `touchUp`.
 
 ### 19.4 `build.gradle` (core) — dependências mínimas
 
 ```groovy
 dependencies {
     api "com.badlogicgames.gdx:gdx:$gdxVersion"
-    testImplementation "org.junit.jupiter:junit-jupiter:5.10.2"
+
+    testImplementation platform("org.junit:junit-bom:$junitVersion")
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 test { useJUnitPlatform() }
 ```
